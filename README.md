@@ -4,7 +4,7 @@
 配合 [Social-AI-Group](https://github.com/lucianma05-create/Social-AI-Group) 格式，`Auto-Summary` 用于自动生成论文摘要 Markdown。
 
 ![framework](./image/image.png)
-技术工作流详见 [TECHNICAL_WORKFLOW.md](./TECHNICAL_WORKFLOW.md)。
+技术工作流详见 [WORKFLOW.md](./WORKFLOW.md)。
 
 核心能力：
 - 上传/读取 PDF，自动提取正文与候选框架图
