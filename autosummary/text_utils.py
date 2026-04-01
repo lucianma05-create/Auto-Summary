@@ -47,9 +47,23 @@ def extract_pdf_text(pdf_path: Path, max_pages: int, max_chars: int) -> str:
     return "\n".join(chunks).strip()
 
 
-def next_image_name(image_dir: Path) -> str:
+def _ascii_tag(text: str, fallback: str) -> str:
+    raw = re.sub(r"[^A-Za-z0-9]+", "", (text or "")).lower()
+    return raw or fallback
+
+
+def _sharer_abbr(sharer: str) -> str:
+    words = re.findall(r"[A-Za-z]+", sharer or "")
+    if not words:
+        return "usr"
+    if len(words) == 1:
+        return words[0].lower()[:8]
+    return "".join(w[0].lower() for w in words)[:8]
+
+
+def next_image_name(image_dir: Path, *, sharer: str, nickname: str) -> str:
     day = dt.datetime.now().strftime("%Y%m%d")
-    pattern = re.compile(rf"^{day}(\d{{2}})\.png$")
+    pattern = re.compile(rf"^{day}(\d{{2}})[a-z0-9]+\.png$")
     max_id = 0
     for p in image_dir.iterdir():
         if not p.is_file():
@@ -57,7 +71,9 @@ def next_image_name(image_dir: Path) -> str:
         m = pattern.match(p.name)
         if m:
             max_id = max(max_id, int(m.group(1)))
-    return f"{day}{(max_id + 1):02d}.png"
+    sharer_tag = _sharer_abbr(sharer)
+    nick_tag = _ascii_tag(nickname, "general")
+    return f"{day}{(max_id + 1):02d}{sharer_tag}{nick_tag}.png"
 
 
 def clean_json_block(text: str) -> dict[str, Any]:
@@ -95,10 +111,88 @@ def sanitize_filename(text: str) -> str:
     return text or "Untitled"
 
 
+def truncate_utf8_bytes(text: str, max_bytes: int) -> str:
+    raw = text.encode("utf-8")
+    if len(raw) <= max_bytes:
+        return text
+    clipped = raw[:max_bytes]
+    while clipped:
+        try:
+            return clipped.decode("utf-8").rstrip(" .-_")
+        except UnicodeDecodeError:
+            clipped = clipped[:-1]
+    return "untitled"
+
+
+def build_safe_markdown_filename(
+    *,
+    direction: str,
+    venue: str,
+    year: str,
+    title: str,
+    max_bytes: int = 180,
+) -> str:
+    direction = sanitize_filename(direction)
+    venue = sanitize_filename(venue)
+    year = sanitize_filename(year)
+    title = sanitize_filename(title)
+    base = f"{direction}-{venue}-{year}-{title}"
+    if len(base.encode("utf-8")) <= max_bytes:
+        return base + ".md"
+
+    # Preserve prefix semantics: direction-venue-year-
+    prefix = f"{direction}-{venue}-{year}-"
+    remain = max_bytes - len(prefix.encode("utf-8"))
+    if remain < 24:
+        # venue can be very long; cap venue first.
+        short_venue = truncate_utf8_bytes(venue, 40)
+        prefix = f"{direction}-{short_venue}-{year}-"
+        remain = max_bytes - len(prefix.encode("utf-8"))
+    short_title = truncate_utf8_bytes(title, max(remain, 16))
+    base = prefix + short_title
+    return sanitize_filename(base) + ".md"
+
+
 def normalize_year(value: Any) -> str:
     txt = safe_string(value, "unknown")
     m = re.search(r"(19|20)\d{2}", txt)
     return m.group(0) if m else txt
+
+
+def normalize_venue_abbr(value: Any) -> str:
+    txt = safe_string(value, "arXiv").strip()
+    low = txt.lower()
+    rules: list[tuple[list[str], str]] = [
+        (["association for computational linguistics"], "ACL"),
+        (["empirical methods in natural language processing"], "EMNLP"),
+        (["north american chapter", "computational linguistics"], "NAACL"),
+        (["international conference on computational linguistics"], "COLING"),
+        (["conference on language modeling"], "CoLM"),
+        (["conference on computer vision and pattern recognition"], "CVPR"),
+        (["international conference on learning representations"], "ICLR"),
+        (["international conference on machine learning"], "ICML"),
+        (["advances in neural information processing systems"], "NeurIPS"),
+        (["aaai conference on artificial intelligence"], "AAAI"),
+        (["international joint conference on artificial intelligence"], "IJCAI"),
+        (["transactions of the association for computational linguistics"], "TACL"),
+        (["transactions on pattern analysis and machine intelligence"], "TPAMI"),
+        (["arxiv"], "arXiv"),
+    ]
+    for keys, abbr in rules:
+        if all(k in low for k in keys):
+            return abbr
+    m = re.search(r"\b([A-Z][A-Za-z0-9-]{1,11})\b", txt)
+    if m and any(ch.isupper() for ch in m.group(1)):
+        return m.group(1)
+    m2 = re.search(r"\(([A-Za-z][A-Za-z0-9-]{1,11})\)", txt)
+    if m2:
+        return m2.group(1)
+    words = re.findall(r"[A-Za-z]+", txt)
+    if words:
+        initials = "".join(w[0].upper() for w in words if w and w[0].isalpha())
+        if 2 <= len(initials) <= 10:
+            return initials
+    return txt[:24] or "arXiv"
 
 
 def fallback_title_from_filename(pdf_name: str) -> str:
@@ -185,4 +279,3 @@ def quality_gaps(data: dict[str, Any]) -> list[str]:
         if safe_string(data.get(field)) == "未提及":
             missing.append(field)
     return missing
-

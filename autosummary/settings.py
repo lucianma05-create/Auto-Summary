@@ -5,6 +5,8 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+DEFAULT_API_KEY = "sk-FD7W3RQTEfsrTklu3UQ4UHyMvL7M8D4mzpA31pmoac6z5xTg"
+
 
 @dataclass
 class Settings:
@@ -13,6 +15,7 @@ class Settings:
     base_url: str
     model: str
     sharer: str
+    nickname: str
     max_pages: int
     scan_pages: int
     max_chars: int
@@ -26,10 +29,11 @@ class Settings:
 def parse_settings() -> Settings:
     parser = argparse.ArgumentParser(description="Auto summarize PDFs into markdown.")
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
-    parser.add_argument("--api-key", default=os.getenv("HAPPYAPI_API_KEY", ""))
+    parser.add_argument("--api-key", default=os.getenv("HAPPYAPI_API_KEY", DEFAULT_API_KEY))
     parser.add_argument("--base-url", default=os.getenv("HAPPYAPI_BASE_URL", "https://happyapi.org/v1"))
-    parser.add_argument("--model", default=os.getenv("HAPPYAPI_MODEL", "gpt-5.1-high"))
+    parser.add_argument("--model", default=os.getenv("HAPPYAPI_MODEL", "gpt-5-high"))
     parser.add_argument("--sharer", default=os.getenv("SUMMARY_SHARER", "自动生成"))
+    parser.add_argument("--nickname", default=os.getenv("SUMMARY_NICKNAME", "general"))
     parser.add_argument("--max-pages", type=int, default=16)
     parser.add_argument("--scan-pages", type=int, default=30)
     parser.add_argument("--max-chars", type=int, default=36000)
@@ -43,8 +47,9 @@ def parse_settings() -> Settings:
         root=args.root.resolve(),
         api_key=args.api_key,
         base_url=args.base_url,
-        model=args.model,
+        model=(args.model or "").strip() or "gpt-5-high",
         sharer=args.sharer,
+        nickname=(args.nickname or "").strip() or "general",
         max_pages=args.max_pages,
         scan_pages=args.scan_pages,
         max_chars=args.max_chars,
@@ -54,4 +59,3 @@ def parse_settings() -> Settings:
         vlm_top_k=args.vlm_top_k,
         dry_run=args.dry_run,
     )
-

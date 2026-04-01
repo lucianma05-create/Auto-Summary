@@ -20,7 +20,7 @@
 
 ## 3. 核心流程
 
-![framework](./image/image.png)
+![framework](./image.png)
 
 ### 阶段 A：任务初始化
 1. 创建/检查工作目录：`待处理pdf/`、`已处理pdf/`、`paper/`、`image/`

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-DIRECTION_FALLBACK = {"DWM", "Data", "Memory", "Planing", "PD", "Recommend"}
+DIRECTION_FALLBACK = {"DWM", "Data", "Memory", "Planing", "PD", "Recommend","ToM", "ED", "SN","RLHF"}
 
 REQUIRED_KEYS = [
     "direction",

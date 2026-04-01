@@ -16,11 +16,13 @@ from .settings import Settings
 from .summary_writer import build_markdown
 from .text_utils import (
     apply_quality_constraints,
+    build_safe_markdown_filename,
     extract_pdf_text,
     fallback_title_from_filename,
     list_pending_pdfs,
     load_directions,
     next_image_name,
+    normalize_venue_abbr,
     normalize_year,
     quality_gaps,
     safe_string,
@@ -85,7 +87,7 @@ def process_one_pdf(
         raise RuntimeError("No text extracted from PDF.")
     report(15, "PDF 文本提取完成")
 
-    image_name = next_image_name(image_dir)
+    image_name = next_image_name(image_dir, sharer=settings.sharer, nickname=settings.nickname)
     image_path = image_dir / image_name
 
     page_num, pw, ph, bbox, reason = select_figure_candidate(pdf_path=pdf_path, settings=settings)
@@ -155,7 +157,7 @@ def process_one_pdf(
     direction = safe_string(polished.get("direction"), "PD")
     if direction not in direction_candidates:
         direction = "PD"
-    venue = sanitize_filename(safe_string(polished.get("venue"), "arXiv"))
+    venue = sanitize_filename(normalize_venue_abbr(polished.get("venue")))
     year = normalize_year(polished.get("year"))
     title = sanitize_filename(safe_string(polished.get("title"), fallback_title_from_filename(pdf_path.name)))
     polished["direction"] = direction
@@ -164,7 +166,7 @@ def process_one_pdf(
     polished["title"] = title
 
     markdown = build_markdown(polished, image_filename=image_name, sharer=settings.sharer)
-    md_name = sanitize_filename(f"{direction}-{venue}-{year}-{title}") + ".md"
+    md_name = build_safe_markdown_filename(direction=direction, venue=venue, year=year, title=title)
     md_path = unique_path(paper_dir / md_name)
     md_path.write_text(markdown, encoding="utf-8")
     target_pdf = unique_path(done_dir / pdf_path.name)

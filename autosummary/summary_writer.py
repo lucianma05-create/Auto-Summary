@@ -41,6 +41,8 @@ def build_markdown(data: dict[str, Any], image_filename: str, sharer: str) -> st
 
     lines = [
         f"# {header_title}",
+        "> 说明：本文档内容默认使用中文生成（论文标题与必要专有名词除外）。",
+        "",
         f"*论文下载地址：{paper_url}*",
         "",
         code_line,
@@ -91,4 +93,3 @@ def build_markdown(data: dict[str, Any], image_filename: str, sharer: str) -> st
         "",
     ]
     return "\n".join(lines)
-

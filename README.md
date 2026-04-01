@@ -3,7 +3,7 @@
 ## 项目介绍
 配合 [Social-AI-Group](https://github.com/lucianma05-create/Social-AI-Group) 格式，`Auto-Summary` 用于自动生成论文摘要 Markdown。
 
-![framework](./image/image.png)
+![framework](./image.png)
 技术工作流详见 [WORKFLOW.md](./WORKFLOW.md)。
 
 核心能力：
@@ -66,6 +66,7 @@ export HAPPYAPI_API_KEY='你的apikey'
 export HAPPYAPI_BASE_URL='https://happyapi.org/v1(api base url)'
 export HAPPYAPI_MODEL='gpt-5.1-high(model name)'  # 可选，默认为 gpt-5.1-high
 export SUMMARY_SHARER='你的名字'          # 可选，WebUI 可覆盖
+export SUMMARY_NICKNAME='pd'            # 可选，全局昵称（英文），用于图片命名后缀
 ```
 
 可选流程参数（不配则走默认）：
@@ -101,7 +102,9 @@ python webui.py
 ## 输出约定
 
 - 摘要文件：`paper/[方向]-[会议]-[年份]-[标题].md`
-- 图片命名：`image/YYYYMMDDNN.png`
+- 图片命名：`image/YYYYMMDDNN[姓名缩写][昵称].png`
+  - 示例：`2024010101mmhpd.png`
+  - 其中 `昵称` 来自全局变量 `SUMMARY_NICKNAME`（英文/数字）
 - 已处理 PDF：移动到 `已处理pdf/`
 - 摘要模板结构与 `Social-AI-Group/Example.md` 对齐
 

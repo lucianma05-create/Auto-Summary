@@ -11,6 +11,26 @@ from .constants import LIST_FIELDS, REQUIRED_KEYS
 from .text_utils import clean_json_block
 
 
+def _summarize_messages(messages: list[dict[str, Any]]) -> tuple[int, int, int]:
+    text_chars = 0
+    image_items = 0
+    for msg in messages:
+        content = msg.get("content")
+        if isinstance(content, str):
+            text_chars += len(content)
+            continue
+        if isinstance(content, list):
+            for item in content:
+                if not isinstance(item, dict):
+                    continue
+                if item.get("type") == "text":
+                    text_chars += len(str(item.get("text", "")))
+                elif item.get("type") == "image_url":
+                    image_items += 1
+    payload_bytes = len(json.dumps(messages, ensure_ascii=False).encode("utf-8"))
+    return text_chars, image_items, payload_bytes
+
+
 def call_chat(
     api_key: str,
     base_url: str,
@@ -24,20 +44,56 @@ def call_chat(
     url = base_url.rstrip("/") + "/chat/completions"
     payload = {"model": model, "messages": messages, "temperature": 0.2}
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    text_chars, image_items, payload_bytes = _summarize_messages(messages)
     last_error: Exception | None = None
+    last_http_status: int | None = None
+    last_resp_snippet = ""
     for attempt in range(1, retries + 1):
         try:
             resp = requests.post(url, json=payload, headers=headers, timeout=timeout)
             resp.raise_for_status()
             data = resp.json()
             return data["choices"][0]["message"]["content"]
+        except requests.HTTPError as exc:
+            last_error = exc
+            status = exc.response.status_code if exc.response is not None else None
+            last_http_status = status
+            body = ""
+            if exc.response is not None:
+                try:
+                    body = exc.response.text or ""
+                except Exception:  # noqa: BLE001
+                    body = ""
+            last_resp_snippet = re.sub(r"\s+", " ", body).strip()[:300]
+            if attempt < retries:
+                sleep_s = min(2 ** (attempt - 1), 8)
+                print(
+                    "[WARN] API call failed "
+                    f"({attempt}/{retries}) status={status}, model={model}, "
+                    f"payload_bytes={payload_bytes}, text_chars={text_chars}, image_items={image_items}. "
+                    f"resp={last_resp_snippet or '<empty>'}. Retrying in {sleep_s}s...",
+                    flush=True,
+                )
+                time.sleep(sleep_s)
         except Exception as exc:  # noqa: BLE001
             last_error = exc
             if attempt < retries:
                 sleep_s = min(2 ** (attempt - 1), 8)
-                print(f"[WARN] API call failed ({attempt}/{retries}): {exc}. Retrying in {sleep_s}s...", flush=True)
+                print(
+                    "[WARN] API call failed "
+                    f"({attempt}/{retries}): {exc}. "
+                    f"model={model}, payload_bytes={payload_bytes}, text_chars={text_chars}, image_items={image_items}. "
+                    f"Retrying in {sleep_s}s...",
+                    flush=True,
+                )
                 time.sleep(sleep_s)
-    raise RuntimeError(f"API call failed after {retries} attempts: {last_error}")
+    raise RuntimeError(
+        "API call failed after "
+        f"{retries} attempts: {last_error}; "
+        f"http_status={last_http_status}; model={model}; "
+        f"payload_bytes={payload_bytes}; text_chars={text_chars}; image_items={image_items}; "
+        f"resp={last_resp_snippet or '<empty>'}"
+    )
 
 
 def extract_structured_info(
@@ -61,6 +117,7 @@ def extract_structured_info(
 3) year 必须是4位年份字符串。
 4) challenges / impressive_points / inspirations / other_points / relations / future_work 必须是字符串数组。
 5) 内容用中文，title 保持原论文英文标题。
+6) venue 必须输出会议/期刊简称，不要全称。例如：ACL、EMNLP、NAACL、COLING、NeurIPS、ICLR、ICML、AAAI、IJCAI、CVPR、ECCV、ICCV、TACL、TPAMI。
 
 字段：
 {{
@@ -127,6 +184,7 @@ def polish_content(
    - other_points / relations：1~3条
 4) 每条都要是核心信息，不要重复表达同一意思。
 5) 不得杜撰实验数字、数据集或链接；不确定时保留"未提及"。
+6) venue 必须使用会议/期刊简称（如 ACL/EMNLP），若输入是全称请改写为简称。
 
 输入JSON：
 {json.dumps(extracted, ensure_ascii=False)}
@@ -172,6 +230,8 @@ def repair_fields(
    - other_points / relations：1~3条
 3) 不得编造不存在的链接或实验数据。
 4) 若确实无法确认，用"未提及"或空数组。
+5) 除 title 与必要专有名词外，其余字段统一使用中文表达。
+6) venue 必须使用会议/期刊简称（如 ACL/EMNLP），不要全称。
 
 当前JSON：
 {json.dumps(keep, ensure_ascii=False)}
@@ -201,4 +261,3 @@ def parse_choice_index(text: str, max_n: int) -> int | None:
     if 1 <= idx <= max_n:
         return idx - 1
     return None
-

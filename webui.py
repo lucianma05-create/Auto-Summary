@@ -16,6 +16,7 @@ from autosummary.text_utils import load_directions, sanitize_filename, unique_pa
 
 
 ROOT = Path(__file__).resolve().parent
+DEFAULT_API_KEY = "sk-FD7W3RQTEfsrTklu3UQ4UHyMvL7M8D4mzpA31pmoac6z5xTg"
 RESULTS: dict[str, dict[str, str]] = {}
 JOBS: dict[str, dict[str, object]] = {}
 JOB_LOCK = threading.Lock()
@@ -25,18 +26,20 @@ app.config["MAX_CONTENT_LENGTH"] = 64 * 1024 * 1024
 
 
 def build_settings_from_form() -> Settings:
-    api_key = request.form.get("api_key", "").strip() or os.getenv("HAPPYAPI_API_KEY", "").strip()
+    api_key = request.form.get("api_key", "").strip() or os.getenv("HAPPYAPI_API_KEY", DEFAULT_API_KEY).strip()
     if not api_key:
         raise RuntimeError("请在页面填写 API Key，或在后端配置 HAPPYAPI_API_KEY。")
     base_url = request.form.get("base_url", "").strip() or os.getenv("HAPPYAPI_BASE_URL", "https://happyapi.org/v1").strip()
-    model = request.form.get("model", "").strip() or os.getenv("HAPPYAPI_MODEL", "gpt-5.1-high").strip()
+    model = request.form.get("model", "").strip() or os.getenv("HAPPYAPI_MODEL", "glm-4.7").strip()
     sharer = request.form.get("sharer", "").strip() or os.getenv("SUMMARY_SHARER", "自动生成").strip()
+    nickname = os.getenv("SUMMARY_NICKNAME", "general").strip()
     return Settings(
         root=ROOT,
         api_key=api_key,
         base_url=base_url,
         model=model,
         sharer=sharer,
+        nickname=nickname,
         max_pages=int(os.getenv("SUMMARY_MAX_PAGES", "16")),
         scan_pages=int(os.getenv("SUMMARY_SCAN_PAGES", "30")),
         max_chars=int(os.getenv("SUMMARY_MAX_CHARS", "36000")),
@@ -70,8 +73,9 @@ def index():
         "index.html",
         cache_items=cache_items,
         default_sharer=os.getenv("SUMMARY_SHARER", "自动生成").strip(),
+        default_api_key=os.getenv("HAPPYAPI_API_KEY", DEFAULT_API_KEY).strip(),
         default_base_url=os.getenv("HAPPYAPI_BASE_URL", "https://happyapi.org/v1").strip(),
-        default_model=os.getenv("HAPPYAPI_MODEL", "gpt-5.1-high").strip(),
+        default_model=os.getenv("HAPPYAPI_MODEL", "glm-4.7").strip(),
     )
 
 
