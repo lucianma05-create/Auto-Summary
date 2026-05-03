@@ -4,15 +4,7 @@
 配合 [Social-AI-Group](https://github.com/lucianma05-create/Social-AI-Group) 格式，`Auto-Summary` 用于自动生成论文摘要 Markdown。
 
 ## demo
-<iframe src="https://player.bilibili.com/player.html?bvid=BV1Fp9ZBwEN5&high_quality=1" 
-        scrolling="no" 
-        border="0" 
-        frameborder="no" 
-        framespacing="0" 
-        allowfullscreen="true" 
-        width="560" 
-        height="315">
-</iframe>
+[![点击播放视频](./thumbnail.png)](https://www.bilibili.com/video/BV1Fp9ZBwEN5/?vd_source=22173a6fa342ecf648e799cd933213c5)
 
 ![framework](./image.png)
 技术工作流详见 [WORKFLOW.md](./WORKFLOW.md)。
