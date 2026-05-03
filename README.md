@@ -17,6 +17,12 @@ WebUI 特性：
 - 进度条显示实时阶段状态
 - 首页带“最近结果缓存区”，可回看和下载历史结果
 
+## demo
+<video width="560" controls>
+  <source src="./auto_summary.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+
 ---
 
 ## 文件树
