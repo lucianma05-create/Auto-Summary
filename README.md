@@ -3,6 +3,17 @@
 ## 项目介绍
 配合 [Social-AI-Group](https://github.com/lucianma05-create/Social-AI-Group) 格式，`Auto-Summary` 用于自动生成论文摘要 Markdown。
 
+## demo
+<iframe src="https://player.bilibili.com/player.html?bvid=BV1Fp9ZBwEN5&high_quality=1" 
+        scrolling="no" 
+        border="0" 
+        frameborder="no" 
+        framespacing="0" 
+        allowfullscreen="true" 
+        width="560" 
+        height="315">
+</iframe>
+
 ![framework](./image.png)
 技术工作流详见 [WORKFLOW.md](./WORKFLOW.md)。
 
@@ -16,12 +27,6 @@ WebUI 特性：
 - 页面保留上传框 + Base URL/API Key/Model（可自定义并浏览器本地缓存）+ 分享人字段
 - 进度条显示实时阶段状态
 - 首页带“最近结果缓存区”，可回看和下载历史结果
-
-## demo
-<video width="560" controls>
-  <source src="./auto_summary.mp4" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
 
 ---
 
